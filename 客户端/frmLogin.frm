@@ -63,7 +63,7 @@ Begin VB.Form frmLogin
       TabIndex        =   2
       Top             =   1920
       Width           =   3735
-      Begin VB.TextBox Text2 
+      Begin VB.TextBox txtServerPort 
          Height          =   270
          Left            =   1440
          TabIndex        =   6
@@ -71,7 +71,7 @@ Begin VB.Form frmLogin
          Top             =   720
          Width           =   1935
       End
-      Begin VB.TextBox Text1 
+      Begin VB.TextBox txtServerDomain 
          Height          =   270
          Left            =   1440
          TabIndex        =   4
@@ -160,21 +160,21 @@ Private Const WSADESCRIPTION_LEN = 256
 Private Const WSASYS_STATUS_LEN = 128
 
 Private Type HOSTENT
-   hName As Long
-   hAliases As Long
-   hAddrType As Integer
-   hLength As Integer
-   hAddrList As Long
+  hName As Long
+  hAliases As Long
+  hAddrType As Integer
+  hLength As Integer
+  hAddrList As Long
 End Type
 
 Private Type WSAData
-   wVersion As Integer
-   wHighVersion As Integer
-   szDescription(0 To WSADESCRIPTION_LEN) As Byte
-   szSystemStatus(0 To WSASYS_STATUS_LEN) As Byte
-   iMaxSockets As Integer
-   iMaxUdpDg As Integer
-   lpszVendorInfo As Long
+  wVersion As Integer
+  wHighVersion As Integer
+  szDescription(0 To WSADESCRIPTION_LEN) As Byte
+  szSystemStatus(0 To WSASYS_STATUS_LEN) As Byte
+  iMaxSockets As Integer
+  iMaxUdpDg As Integer
+  lpszVendorInfo As Long
 End Type
 Private Declare Function gethostbyaddr Lib "wsock32.dll" (addr As Any, ByVal _
 byteslen As Integer, addrtype As Integer) As Long
@@ -189,114 +189,118 @@ Private Declare Sub RtlMoveMemory Lib "kernel32" (hpvDest As Any, _
 Dim Nam As String
 
 Function hibyte(ByVal wParam As Integer)   ' 注释：获得整数的高位
-   hibyte = wParam \ &H100 And &HFF&
+  hibyte = wParam \ &H100 And &HFF&
 End Function
 
 Function lobyte(ByVal wParam As Integer)   ' 注释：获得整数的低位
-   lobyte = wParam And &HFF&
+  lobyte = wParam And &HFF&
 End Function
 
 Function SocketsInitialize()
-   Dim WSAD As WSAData
-   Dim iReturn As Integer
-   Dim sLowByte As String, sHighByte As String, sMsg As String
-   
-   iReturn = WSAStartup(WS_VERSION_REQD, WSAD)
-   
-   If iReturn <> 0 Then
-      MsgBox "Winsock.dll 没有反应."
-      End
-   End If
-   
-   If lobyte(WSAD.wVersion) < WS_VERSION_MAJOR Or (lobyte(WSAD.wVersion) = WS_VERSION_MAJOR And hibyte(WSAD.wVersion) < WS_VERSION_MINOR) Then
-      sHighByte = Trim$(Str$(hibyte(WSAD.wVersion)))
-      sLowByte = Trim$(Str$(lobyte(WSAD.wVersion)))
-      sMsg = "Windows Sockets版本 " & sLowByte & "." & sHighByte
-      sMsg = sMsg & " 不被winsock.dll支持 "
-      MsgBox sMsg
-      End
-   End If
-   
-   If WSAD.iMaxSockets < MIN_SOCKETS_REQD Then
-      sMsg = "这个系统需要的最少Sockets数为 "
-      sMsg = sMsg & Trim$(Str$(MIN_SOCKETS_REQD))
-      MsgBox sMsg
-      End
-   End If
+  Dim WSAD As WSAData
+  Dim iReturn As Integer
+  Dim sLowByte As String, sHighByte As String, sMsg As String
+  
+  iReturn = WSAStartup(WS_VERSION_REQD, WSAD)
+  
+  If iReturn <> 0 Then
+    MsgBox "Winsock.dll 没有反应."
+    End
+  End If
+  
+  If lobyte(WSAD.wVersion) < WS_VERSION_MAJOR Or (lobyte(WSAD.wVersion) = WS_VERSION_MAJOR And hibyte(WSAD.wVersion) < WS_VERSION_MINOR) Then
+    sHighByte = Trim$(Str$(hibyte(WSAD.wVersion)))
+    sLowByte = Trim$(Str$(lobyte(WSAD.wVersion)))
+    sMsg = "Windows Sockets版本 " & sLowByte & "." & sHighByte
+    sMsg = sMsg & " 不被winsock.dll支持 "
+    MsgBox sMsg
+    End
+  End If
+  
+  If WSAD.iMaxSockets < MIN_SOCKETS_REQD Then
+    sMsg = "这个系统需要的最少Sockets数为 "
+    sMsg = sMsg & Trim$(Str$(MIN_SOCKETS_REQD))
+    MsgBox sMsg
+    End
+  End If
    
 End Function
 
 Sub SocketsCleanup()
-   Dim lReturn As Long
-   
-   lReturn = WSACleanup()
-   
-   If lReturn <> 0 Then
-      MsgBox "Socket错误 " & Trim$(Str$(lReturn)) & " occurred in Cleanup "
-      End
-   End If
+  Dim lReturn As Long
+  
+  lReturn = WSACleanup()
+  
+  If lReturn <> 0 Then
+    MsgBox "Socket错误 " & Trim$(Str$(lReturn)) & " occurred in Cleanup "
+    End
+  End If
 End Sub
 
 Private Sub cmdCancel_Click() '显示/缩起设置
-Me.Height = 6100 - Me.Height
+  Me.Height = 6100 - Me.Height
 End Sub
 
 Private Sub cmdOK_Click() '登陆
-If IsNumeric(Text2) = False Or Val(Text2) < 0 Or Val(Text2) > 65535 Then
+  '端口不是数字，小于零，大于65535，都算错误
+  If IsNumeric(txtServerPort.Text) = False Or Val(txtServerPort.Text) < 0 Or Val(txtServerPort.Text) > 65535 Then
     MsgBox "端口格式错误！", vbOKOnly + 16, "警告！"
     Exit Sub
-End If
-If getip(Text1) = "" Then
+  End If
+  
+  If getip(txtServerDomain.Text) = "" Then
     MsgBox "服务器IP地址解析错误！可能是服务器不在线，请稍后再试！", vbOKOnly + 64, "提示！"
     Exit Sub
-End If
-
-SVR_IP = getip(Text1)
-SVR_PORT = Val(Text2)
-USER_NAME = txtUserName
-If USER_NAME = "" Then USER_NAME = "无名大侠"
-If LCase(USER_NAME) = "admin" Then USER_NAME = "冒牌admin"
-FormMain.Show
-Unload Me
+  End If
+  
+  SVR_IP = getip(txtServerDomain)
+  SVR_PORT = Val(txtServerPort)
+  USER_NAME = txtUserName
+  If USER_NAME = "" Then USER_NAME = "无名大侠"
+  If LCase(USER_NAME) = "admin" Then USER_NAME = "冒牌admin"
+  FormMain.Show
+  Unload Me
 End Sub
 
 Sub Form_Load()
-    Me.Height = 2100
-'注释:     初始化Socket
-    SocketsInitialize
+  Me.Height = 2100
+  '注释:     初始化Socket
+  SocketsInitialize
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
-'注释:     清除Socket
-    SocketsCleanup
+  '注释:     清除Socket
+  SocketsCleanup
 End Sub
+
 Private Function getip(name As String) As String '解析域名获取服务器IP地址
-   Dim hostent_addr As Long
-   Dim Host As HOSTENT
-   Dim hostip_addr As Long
-   Dim temp_ip_address() As Byte
-   Dim i As Integer
-   Dim ip_address As String
-   
-   hostent_addr = gethostbyname(name)
-   
-   If hostent_addr = 0 Then
-      getip = ""                     '注释：主机名不能被解释
-      Exit Function
-   End If
-   
-   RtlMoveMemory Host, hostent_addr, LenB(Host)
-   RtlMoveMemory hostip_addr, Host.hAddrList, 4
-   
-   ReDim temp_ip_address(1 To Host.hLength)
-   RtlMoveMemory temp_ip_address(1), hostip_addr, Host.hLength
-   
-   For i = 1 To Host.hLength
-      ip_address = ip_address & temp_ip_address(i) & "."
-   Next
-   ip_address = Mid$(ip_address, 1, Len(ip_address) - 1)
-   
-   getip = ip_address
+  Dim hostent_addr As Long      '存储了服务器的信息的内存地址
+  Dim Host As HOSTENT           '服务器的信息
+  Dim hostip_addr As Long
+  Dim temp_ip_address() As Byte
+  Dim i As Integer
+  Dim ip_address As String
+  '调用系统API查询域名的IP，得到域名信息的数据的地址
+  hostent_addr = gethostbyname(name)
+  '返回值为0，说明查询失败
+  If hostent_addr = 0 Then
+    getip = ""                     '注释：主机名不能被解释
+    Exit Function
+  End If
+  '将【服务器信息】的地址内的信息复制给，【服务器信息结构体】
+  RtlMoveMemory Host, hostent_addr, LenB(Host)
+  '
+  RtlMoveMemory hostip_addr, Host.hAddrList, 4
+  
+  ReDim temp_ip_address(1 To Host.hLength)
+  RtlMoveMemory temp_ip_address(1), hostip_addr, Host.hLength
+  
+  For i = 1 To Host.hLength
+    ip_address = ip_address & temp_ip_address(i) & "."
+  Next
+  ip_address = Mid$(ip_address, 1, Len(ip_address) - 1)
+  
+  getip = ip_address
 
 End Function
 
